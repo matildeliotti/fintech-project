@@ -31,89 +31,23 @@
         const { useState, useEffect } = React;
 
         const CAUSES = [
-            {
-                id: 'reforestation',
-                title: 'Plant a Tree',
-                shortDesc: '€1 = 1 Tree Planted',
-                longDesc: 'Partnering with global reforestation projects, your donations go directly towards planting native trees in deforested areas, restoring habitats, and combating climate change.',
-                icon: 'fa-tree',
-                color: 'bg-emerald-100 text-emerald-700',
-                borderColor: 'border-emerald-200',
-                partner: 'Green Earth NGOs'
-            },
-            {
-                id: 'ocean',
-                title: 'Ocean Cleanup',
-                shortDesc: 'Removing ocean waste',
-                longDesc: 'Funds are directed to fleets working to remove plastic debris from our oceans. Every donation helps extract pounds of waste, protecting marine life and oceanic ecosystems.',
-                icon: 'fa-water',
-                color: 'bg-blue-100 text-blue-700',
-                borderColor: 'border-blue-200',
-                partner: 'CleanSeas Initiative'
-            },
-            {
-                id: 'energy',
-                title: 'Green Energy',
-                shortDesc: 'Funding solar panels',
-                longDesc: 'Invest in the future by funding solar panels for developing communities. Your contributions help reduce reliance on fossil fuels and promote sustainable living.',
-                icon: 'fa-solar-panel',
-                color: 'bg-amber-100 text-amber-700',
-                borderColor: 'border-amber-200',
-                partner: 'Solar For All'
-            },
-            {
-                id: 'recycling',
-                title: 'Recycling Facilities',
-                shortDesc: 'Improving waste management',
-                longDesc: 'Help fund state-of-the-art recycling facilities in urban areas to ensure more materials are reused and less end up in landfills.',
-                icon: 'fa-recycle',
-                color: 'bg-green-100 text-green-700',
-                borderColor: 'border-green-200',
-                partner: 'Urban Recyclers'
-            },
-            {
-                id: 'wildlife',
-                title: 'Wildlife Rescue',
-                shortDesc: 'Protecting habitats',
-                longDesc: 'Support anti-poaching units and habitat preservation efforts for endangered species around the globe. Help ensure wildlife thrives for generations to come.',
-                icon: 'fa-paw',
-                color: 'bg-orange-100 text-orange-700',
-                borderColor: 'border-orange-200',
-                partner: 'Global Wildlife Fund'
-            },
-            {
-                id: 'agriculture',
-                title: 'Sustainable Agriculture',
-                shortDesc: 'Empowering local farmers',
-                longDesc: 'Provide local farmers with the tools and education needed to transition to sustainable, organic farming practices that heal the soil and sequester carbon.',
-                icon: 'fa-wheat-awn',
-                color: 'bg-yellow-100 text-yellow-700',
-                borderColor: 'border-yellow-200',
-                partner: 'EcoFarms Alliance'
-            },
-            {
-                id: 'water',
-                title: 'Clean Water',
-                shortDesc: 'Building community wells',
-                longDesc: 'Help build sustainable wells and water purification systems in communities lacking access to safe, clean drinking water.',
-                icon: 'fa-droplet',
-                color: 'bg-cyan-100 text-cyan-700',
-                borderColor: 'border-cyan-200',
-                partner: 'WaterSource'
-            },
-            {
-                id: 'coral',
-                title: 'Coral Reef Restoration',
-                shortDesc: 'Planting new corals',
-                longDesc: 'Fund marine biologists who are actively growing and transplanting heat-resilient corals to degraded reef systems to restore ocean biodiversity.',
-                icon: 'fa-fish',
-                color: 'bg-teal-100 text-teal-700',
-                borderColor: 'border-teal-200',
-                partner: 'Reef Rescue'
-            }
+            { id: 'reforestation', title: 'Plant a Tree', shortDesc: '€1 = 1 Tree Planted', longDesc: 'Partnering with global reforestation projects, your donations go directly towards planting native trees in deforested areas, restoring habitats, and combating climate change.', icon: 'fa-tree', color: 'bg-emerald-100 text-emerald-700', borderColor: 'border-emerald-200', partner: 'Green Earth NGOs' },
+            { id: 'ocean', title: 'Ocean Cleanup', shortDesc: 'Removing ocean waste', longDesc: 'Funds are directed to fleets working to remove plastic debris from our oceans. Every donation helps extract pounds of waste, protecting marine life and oceanic ecosystems.', icon: 'fa-water', color: 'bg-blue-100 text-blue-700', borderColor: 'border-blue-200', partner: 'CleanSeas Initiative' },
+            { id: 'energy', title: 'Green Energy', shortDesc: 'Funding solar panels', longDesc: 'Invest in the future by funding solar panels for developing communities. Your contributions help reduce reliance on fossil fuels and promote sustainable living.', icon: 'fa-solar-panel', color: 'bg-amber-100 text-amber-700', borderColor: 'border-amber-200', partner: 'Solar For All' },
+            { id: 'recycling', title: 'Recycling Facilities', shortDesc: 'Improving waste management', longDesc: 'Help fund state-of-the-art recycling facilities in urban areas to ensure more materials are reused and less end up in landfills.', icon: 'fa-recycle', color: 'bg-green-100 text-green-700', borderColor: 'border-green-200', partner: 'Urban Recyclers' },
+            { id: 'wildlife', title: 'Wildlife Rescue', shortDesc: 'Protecting habitats', longDesc: 'Support anti-poaching units and habitat preservation efforts for endangered species around the globe. Help ensure wildlife thrives for generations to come.', icon: 'fa-paw', color: 'bg-orange-100 text-orange-700', borderColor: 'border-orange-200', partner: 'Global Wildlife Fund' },
+            { id: 'agriculture', title: 'Sustainable Agriculture', shortDesc: 'Empowering local farmers', longDesc: 'Provide local farmers with the tools and education needed to transition to sustainable, organic farming practices that heal the soil and sequester carbon.', icon: 'fa-wheat-awn', color: 'bg-yellow-100 text-yellow-700', borderColor: 'border-yellow-200', partner: 'EcoFarms Alliance' },
+            { id: 'water', title: 'Clean Water', shortDesc: 'Building community wells', longDesc: 'Help build sustainable wells and water purification systems in communities lacking access to safe, clean drinking water.', icon: 'fa-droplet', color: 'bg-cyan-100 text-cyan-700', borderColor: 'border-cyan-200', partner: 'WaterSource' },
+            { id: 'coral', title: 'Coral Reef Restoration', shortDesc: 'Planting new corals', longDesc: 'Fund marine biologists who are actively growing and transplanting heat-resilient corals to degraded reef systems to restore ocean biodiversity.', icon: 'fa-fish', color: 'bg-teal-100 text-teal-700', borderColor: 'border-teal-200', partner: 'Reef Rescue' }
         ];
 
         const TOTAL_BADGES_FOR_ALBUM = 30; 
+
+        const REWARDS_DATA = [
+            { id: 'reforestation', causeId: 'reforestation', title: "Sustainability Diploma", desc: "Official certificate sent directly to you for reforestation efforts." },
+            { id: 'ocean', causeId: 'ocean', title: "Partner Discount", desc: "Special real-world company discount with CleanSeas Initiative." },
+            { id: 'energy', causeId: 'energy', title: "3 Months Free Premium", desc: "Enjoy 3 months of free premium subscription on us." }
+        ];
 
         function EcoWallet() {
             const [activeTab, setActiveTab] = useState('wallet');
@@ -168,19 +102,6 @@
                 setTimeout(() => setShowToast(null), 3000);
             };
 
-            const getUnlockedRewards = () => {
-                const rewards = [];
-                if (donations.reforestation >= 3) rewards.push({ title: "Sustainability Diploma", desc: "Official certificate for reforestation efforts." });
-                if (donations.ocean >= 3) rewards.push({ title: "10% Partner Discount", desc: "At CleanSeas zero-waste shop." });
-                if (donations.energy >= 3) rewards.push({ title: "1 Month Premium Free", desc: "Thanks to your Green Energy support!" });
-                if (donations.recycling >= 3) rewards.push({ title: "Reusable Tote Bag", desc: "Sent directly to your address." });
-                if (donations.wildlife >= 3) rewards.push({ title: "Wildlife Adopter Badge", desc: "Exclusive digital badge for wildlife support." });
-                if (donations.agriculture >= 3) rewards.push({ title: "Organic Seed Packet", desc: "Real seeds mailed to your address!" });
-                if (donations.water >= 3) rewards.push({ title: "Reusable Bottle Discount", desc: "20% off WaterSource merch." });
-                if (donations.coral >= 3) rewards.push({ title: "Reef Explorer Title", desc: "Special forum badge." });
-                return rewards;
-            };
-
             const renderWalletTab = () => (
                 <div className="space-y-6 animate-in fade-in duration-500">
                     <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
@@ -202,15 +123,9 @@
                             </p>
                             
                             <div className="flex gap-2 mb-3">
-                                <button onClick={() => handleAddFunds(2)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">
-                                    +€2
-                                </button>
-                                <button onClick={() => handleAddFunds(5)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">
-                                    +€5
-                                </button>
-                                <button onClick={() => handleAddFunds(10)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">
-                                    +€10
-                                </button>
+                                <button onClick={() => handleAddFunds(2)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">+€2</button>
+                                <button onClick={() => handleAddFunds(5)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">+€5</button>
+                                <button onClick={() => handleAddFunds(10)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">+€10</button>
                             </div>
                             
                             <div className="flex gap-2">
@@ -277,8 +192,28 @@
             );
 
             const renderAlbumTab = () => {
-                const rewards = getUnlockedRewards();
                 const progressPercentage = Math.min((badges.length / TOTAL_BADGES_FOR_ALBUM) * 100, 100);
+
+                const allRewards = REWARDS_DATA.map(reward => {
+                    const donCount = donations[reward.causeId] || 0;
+                    return {
+                        ...reward,
+                        progress: Math.min(donCount, 3),
+                        target: 3,
+                        isUnlocked: donCount >= 3
+                    };
+                });
+                
+                // Add the grand prize for 30 badges (Completion of the Album)
+                allRewards.push({
+                    id: 'grand_prize',
+                    title: "Completion of the Album",
+                    desc: "Grand Reward for collecting all 30 badges across causes!",
+                    progress: Math.min(badges.length, TOTAL_BADGES_FOR_ALBUM),
+                    target: TOTAL_BADGES_FOR_ALBUM,
+                    isUnlocked: badges.length >= TOTAL_BADGES_FOR_ALBUM,
+                    isGrand: true
+                });
 
                 return (
                     <div className="space-y-6 animate-in fade-in duration-500">
@@ -340,25 +275,28 @@
                         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                             <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
                                 <i className="fa-solid fa-gift text-rose-500 mr-2"></i>
-                                Unlocked Rewards
+                                Rewards & Milestones
                             </h3>
-                            {rewards.length === 0 ? (
-                                <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-xl">
-                                    Donate 3 times to the same cause to unlock your first reward!
-                                </p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {rewards.map((reward, idx) => (
-                                        <div key={idx} className="flex items-start p-3 bg-rose-50 rounded-xl border border-rose-100">
-                                            <i className="fa-solid fa-circle-check text-rose-500 mt-1 mr-3"></i>
-                                            <div>
-                                                <h4 className="font-medium text-gray-800 text-sm">{reward.title}</h4>
-                                                <p className="text-xs text-gray-600">{reward.desc}</p>
+                            <div className="space-y-3">
+                                {allRewards.map((reward) => (
+                                    <div key={reward.id} className={`flex items-start p-3 rounded-xl border transition-all ${reward.isUnlocked ? (reward.isGrand ? 'bg-amber-50 border-amber-200' : 'bg-rose-50 border-rose-100') : 'bg-gray-50 border-gray-200 opacity-80'}`}>
+                                        {reward.isUnlocked ? (
+                                            <i className={`fa-solid ${reward.isGrand ? 'fa-trophy text-amber-500' : 'fa-circle-check text-rose-500'} mt-1 mr-3 text-lg`}></i>
+                                        ) : (
+                                            <i className="fa-solid fa-lock text-gray-400 mt-1 mr-3 text-lg"></i>
+                                        )}
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <h4 className={`font-medium text-sm ${reward.isUnlocked ? 'text-gray-800' : 'text-gray-500'}`}>{reward.title}</h4>
+                                                <span className={`text-xs font-bold whitespace-nowrap ml-2 ${reward.isUnlocked ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                                    {reward.progress} / {reward.target}
+                                                </span>
                                             </div>
+                                            <p className={`text-xs ${reward.isUnlocked ? 'text-gray-600' : 'text-gray-400'}`}>{reward.desc}</p>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 );
