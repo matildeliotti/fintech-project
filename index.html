@@ -243,4 +243,17 @@
                             <span className="text-2xl mb-1">🌍</span>
                             <span className="text-xs font-bold">Causes</span>
                         </button>
-                        <button onClick={() => setActiveTab('album')} className={`flex flex-col
+                        <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center p-3 flex-1 ${activeTab === 'album' ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                            <span className="text-2xl mb-1">🏅</span>
+                            <span className="text-xs font-bold">Album</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
