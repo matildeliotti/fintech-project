@@ -3,257 +3,585 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ING Bank - EcoWallet</title>
-    <!-- Load React, ReactDOM, and Babel -->
+    <title>EcoWallet Rewards Prototype</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel to compile JSX in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { margin: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        /* Hide scrollbar for clean app look */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body>
     <div id="root"></div>
+
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
-        const App = () => {
-            const [view, setView] = useState('bank'); // 'bank', 'ecowallet', 'premium_checkout'
-            const [walletBalance, setWalletBalance] = useState(14.50);
-            const [badges, setBadges] = useState([]);
+        const CAUSES = [
+            {
+                id: 'reforestation',
+                title: 'Plant a Tree',
+                shortDesc: '€1 = 1 Tree Planted',
+                longDesc: 'Partnering with global reforestation projects, your donations go directly towards planting native trees in deforested areas, restoring habitats, and combating climate change.',
+                icon: 'fa-tree',
+                color: 'bg-emerald-100 text-emerald-700',
+                borderColor: 'border-emerald-200',
+                partner: 'Green Earth NGOs'
+            },
+            {
+                id: 'ocean',
+                title: 'Ocean Cleanup',
+                shortDesc: 'Removing ocean waste',
+                longDesc: 'Funds are directed to fleets working to remove plastic debris from our oceans. Every donation helps extract pounds of waste, protecting marine life and oceanic ecosystems.',
+                icon: 'fa-water',
+                color: 'bg-blue-100 text-blue-700',
+                borderColor: 'border-blue-200',
+                partner: 'CleanSeas Initiative'
+            },
+            {
+                id: 'energy',
+                title: 'Green Energy',
+                shortDesc: 'Funding solar panels',
+                longDesc: 'Invest in the future by funding solar panels for developing communities. Your contributions help reduce reliance on fossil fuels and promote sustainable living.',
+                icon: 'fa-solar-panel',
+                color: 'bg-amber-100 text-amber-700',
+                borderColor: 'border-amber-200',
+                partner: 'Solar For All'
+            },
+            {
+                id: 'recycling',
+                title: 'Recycling Facilities',
+                shortDesc: 'Improving waste management',
+                longDesc: 'Help fund state-of-the-art recycling facilities in urban areas to ensure more materials are reused and less end up in landfills.',
+                icon: 'fa-recycle',
+                color: 'bg-green-100 text-green-700',
+                borderColor: 'border-green-200',
+                partner: 'Urban Recyclers'
+            },
+            {
+                id: 'wildlife',
+                title: 'Wildlife Rescue',
+                shortDesc: 'Protecting habitats',
+                longDesc: 'Support anti-poaching units and habitat preservation efforts for endangered species around the globe. Help ensure wildlife thrives for generations to come.',
+                icon: 'fa-paw',
+                color: 'bg-orange-100 text-orange-700',
+                borderColor: 'border-orange-200',
+                partner: 'Global Wildlife Fund'
+            },
+            {
+                id: 'agriculture',
+                title: 'Sustainable Agriculture',
+                shortDesc: 'Empowering local farmers',
+                longDesc: 'Provide local farmers with the tools and education needed to transition to sustainable, organic farming practices that heal the soil and sequester carbon.',
+                icon: 'fa-wheat-awn',
+                color: 'bg-yellow-100 text-yellow-700',
+                borderColor: 'border-yellow-200',
+                partner: 'EcoFarms Alliance'
+            },
+            {
+                id: 'water',
+                title: 'Clean Water',
+                shortDesc: 'Building community wells',
+                longDesc: 'Help build sustainable wells and water purification systems in communities lacking access to safe, clean drinking water.',
+                icon: 'fa-droplet',
+                color: 'bg-cyan-100 text-cyan-700',
+                borderColor: 'border-cyan-200',
+                partner: 'WaterSource'
+            },
+            {
+                id: 'coral',
+                title: 'Coral Reef Restoration',
+                shortDesc: 'Planting new corals',
+                longDesc: 'Fund marine biologists who are actively growing and transplanting heat-resilient corals to degraded reef systems to restore ocean biodiversity.',
+                icon: 'fa-fish',
+                color: 'bg-teal-100 text-teal-700',
+                borderColor: 'border-teal-200',
+                partner: 'Reef Rescue'
+            }
+        ];
+
+        const TOTAL_BADGES_FOR_ALBUM = 30; 
+
+        function EcoWallet() {
+            const [activeTab, setActiveTab] = useState('wallet');
+            const [balance, setBalance] = useState(18.50);
             const [isPremium, setIsPremium] = useState(false);
-            const [activeTab, setActiveTab] = useState('wallet'); // 'wallet', 'causes', 'album'
-            const [customDonateAmount, setCustomDonateAmount] = useState('');
+            const [donations, setDonations] = useState({});
+            const [badges, setBadges] = useState([]);
+            const [selectedCause, setSelectedCause] = useState(null);
+            const [showToast, setShowToast] = useState(null);
+            const [customAmount, setCustomAmount] = useState('');
+            const [showPremiumModal, setShowPremiumModal] = useState(false);
+            const [appView, setAppView] = useState('bank'); // 'bank' or 'ecowallet'
 
-            const causes = [
-                { id: 1, name: "Reforestation Project", desc: "Plant trees in deforested areas." },
-                { id: 2, name: "Ocean Cleanup", desc: "Remove plastics from the ocean." },
-                { id: 3, name: "Green Energy Fund", desc: "Support solar and wind energy." },
-                { id: 4, name: "Wildlife Conservation", desc: "Protect endangered species." },
-                { id: 5, name: "Local Recycling", desc: "Improve city recycling facilities." },
-                { id: 6, name: "Clean Water Initiative", desc: "Provide clean water to communities." },
-                { id: 7, name: "Sustainable Agriculture", desc: "Support eco-friendly farming." },
-                { id: 8, name: "Coral Reef Restoration", desc: "Rebuild dying coral reefs." }
-            ];
-
-            const handleDonateAll = (causeId) => {
-                if (walletBalance <= 0) {
-                    alert("Your wallet is empty!");
-                    return;
-                }
-                alert(`Donated €${walletBalance.toFixed(2)} to cause #${causeId}!`);
-                const badgesEarned = isPremium ? 2 : 1;
-                const newBadges = Array(badgesEarned).fill(causeId);
-                setBadges([...badges, ...newBadges]);
-                setWalletBalance(0);
+            const handleAddFunds = (amount) => {
+                if (!amount || isNaN(amount) || amount <= 0) return;
+                setBalance(prev => prev + Number(amount));
+                showNotification(`Added €${Number(amount).toFixed(2)} to your EcoWallet!`);
+                setCustomAmount('');
             };
 
-            const handleCustomDonate = () => {
-                const amount = parseFloat(customDonateAmount);
-                if (isNaN(amount) || amount <= 0) {
-                    alert("Please enter a valid amount.");
-                    return;
+            const handleDonate = (causeId) => {
+                if (balance > 0) {
+                    const donatedAmount = balance;
+                    setBalance(0); // Exact balance goes to 0
+                    
+                    const currentDonations = donations[causeId] || 0;
+                    const newDonationCount = currentDonations + 1;
+                    setDonations(prev => ({ ...prev, [causeId]: newDonationCount }));
+                    
+                    const badgesEarned = isPremium ? 2 : 1;
+                    const newBadges = Array(badgesEarned).fill({ 
+                        id: Math.random().toString(36).substring(7),
+                        causeId, 
+                    });
+                    
+                    setBadges(prev => [...prev, ...newBadges]);
+                    
+                    if (newDonationCount === 3) {
+                        showNotification("🎉 Milestone! You unlocked a new reward!");
+                    } else {
+                        showNotification(`Donated €${donatedAmount.toFixed(2)}! Earned ${badgesEarned} badge${badgesEarned > 1 ? 's' : ''}.`);
+                    }
+                    
+                    setSelectedCause(null);
+                } else {
+                    showNotification("Your wallet is empty!");
                 }
-                alert(`Thank you for adding €${amount.toFixed(2)} to your EcoWallet!`);
-                setWalletBalance(walletBalance + amount);
-                setCustomDonateAmount('');
             };
 
-            // Calculate Reward Unlocks
-            const hasThreeSame = causes.some(c => badges.filter(b => b === c.id).length >= 3);
-            const uniqueBadgesCount = new Set(badges).size;
-            const hasCompletedAlbum = uniqueBadgesCount === causes.length;
-            const totalBadges = badges.length;
+            const showNotification = (message) => {
+                setShowToast(message);
+                setTimeout(() => setShowToast(null), 3000);
+            };
 
-            const rewards = [
-                { id: 'r1', title: 'Sustainability Diploma', desc: 'Donate 3 times to a single cause', unlocked: hasThreeSame, icon: '📜' },
-                { id: 'r2', title: '15% Partner Discount', desc: 'Collect 5 total badges', unlocked: totalBadges >= 5, icon: '🏷️' },
-                { id: 'r3', title: '3 Months Free Premium', desc: 'Complete the entire badge album', unlocked: hasCompletedAlbum, icon: '✨' }
-            ];
+            const getUnlockedRewards = () => {
+                const rewards = [];
+                if (donations.reforestation >= 3) rewards.push({ title: "Sustainability Diploma", desc: "Official certificate for reforestation efforts." });
+                if (donations.ocean >= 3) rewards.push({ title: "10% Partner Discount", desc: "At CleanSeas zero-waste shop." });
+                if (donations.energy >= 3) rewards.push({ title: "1 Month Premium Free", desc: "Thanks to your Green Energy support!" });
+                if (donations.recycling >= 3) rewards.push({ title: "Reusable Tote Bag", desc: "Sent directly to your address." });
+                if (donations.wildlife >= 3) rewards.push({ title: "Wildlife Adopter Badge", desc: "Exclusive digital badge for wildlife support." });
+                if (donations.agriculture >= 3) rewards.push({ title: "Organic Seed Packet", desc: "Real seeds mailed to your address!" });
+                if (donations.water >= 3) rewards.push({ title: "Reusable Bottle Discount", desc: "20% off WaterSource merch." });
+                if (donations.coral >= 3) rewards.push({ title: "Reef Explorer Title", desc: "Special forum badge." });
+                return rewards;
+            };
 
-            if (view === 'bank') {
-                return (
-                    <div className="min-h-screen bg-orange-500 flex flex-col items-center pt-12">
-                        <h1 className="text-4xl font-bold text-white mb-8">ING</h1>
-                        <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold">Good morning, JK</h2>
-                                <div className="w-10 h-10 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center font-bold">JK</div>
+            const renderWalletTab = () => (
+                <div className="space-y-6 animate-in fade-in duration-500">
+                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+                        <i className="fa-solid fa-leaf absolute top-4 right-4 text-6xl opacity-20"></i>
+                        <h2 className="text-emerald-100 font-medium mb-1 relative z-10">Spare Change Wallet</h2>
+                        <div className="text-4xl font-bold mb-4 relative z-10">€{balance.toFixed(2)}</div>
+                        
+                        <button 
+                            onClick={() => setActiveTab('causes')}
+                            className="w-full bg-white text-emerald-600 font-bold py-3 rounded-xl mb-6 shadow-md hover:bg-emerald-50 transition-colors relative z-10"
+                        >
+                            Donate Amount
+                        </button>
+                        
+                        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 relative z-10 border border-white/20">
+                            <p className="text-sm font-medium mb-3 flex items-center">
+                                <i className="fa-solid fa-circle-plus mr-2"></i>
+                                Add Voluntary Funds
+                            </p>
+                            
+                            <div className="flex gap-2 mb-3">
+                                <button onClick={() => handleAddFunds(2)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">
+                                    +€2
+                                </button>
+                                <button onClick={() => handleAddFunds(5)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">
+                                    +€5
+                                </button>
+                                <button onClick={() => handleAddFunds(10)} className="flex-1 bg-white/20 hover:bg-white/30 transition-colors py-2 rounded-lg font-medium">
+                                    +€10
+                                </button>
                             </div>
-                            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                <p className="text-gray-500 text-sm">Main Account</p>
-                                <p className="text-2xl font-bold">€ 2,450.00</p>
+                            
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">€</span>
+                                    <input 
+                                        type="number" 
+                                        placeholder="Custom" 
+                                        value={customAmount}
+                                        onChange={(e) => setCustomAmount(e.target.value)}
+                                        className="w-full bg-white text-gray-900 pl-8 pr-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder-gray-400"
+                                    />
+                                </div>
+                                <button 
+                                    onClick={() => handleAddFunds(customAmount)}
+                                    className="bg-emerald-700 hover:bg-emerald-800 transition-colors px-4 py-2 rounded-lg font-medium"
+                                >
+                                    Add
+                                </button>
                             </div>
-                            <button 
-                                onClick={() => setView('ecowallet')}
-                                className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition flex justify-between items-center px-4 shadow">
-                                <span>🌱 EcoWallet Rewards</span>
-                                <span>€ {walletBalance.toFixed(2)} &rarr;</span>
-                            </button>
                         </div>
                     </div>
-                );
-            }
 
-            if (view === 'premium_checkout') {
-                return (
-                    <div className="min-h-screen bg-gray-100 flex flex-col items-center pt-12">
-                        <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 max-w-md">
-                            <h2 className="text-2xl font-bold mb-4 text-gray-800">EcoWallet Premium</h2>
-                            <p className="mb-6 text-gray-600">Double your impact! Get 2x badges for every donation. Cancel anytime.</p>
-                            <div className="text-4xl font-bold mb-6 text-center text-blue-600">€ 4.00 <span className="text-sm text-gray-500 font-normal">/ month</span></div>
-                            <button 
-                                onClick={() => {
-                                    setIsPremium(true);
-                                    setView('ecowallet');
-                                    alert("Premium Activated!");
-                                }}
-                                className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition mb-3 shadow">
-                                Pay €4.00 to Subscribe
-                            </button>
-                            <button 
-                                onClick={() => setView('ecowallet')}
-                                className="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-300 transition">
-                                Cancel
-                            </button>
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start space-x-4">
+                        <div className="bg-blue-50 p-3 rounded-full text-blue-500">
+                            <i className="fa-solid fa-circle-info text-xl"></i>
                         </div>
-                    </div>
-                );
-            }
-
-            return (
-                <div className="min-h-screen bg-gray-50 flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative">
-                    {/* Header */}
-                    <div className="bg-green-600 text-white p-4 flex justify-between items-center shadow">
-                        <button onClick={() => setView('bank')} className="text-sm font-medium hover:underline opacity-90">&larr; Back to ING</button>
-                        <h1 className="font-bold text-lg">EcoWallet</h1>
-                        <div className="w-8 h-8 bg-white text-green-700 rounded-full flex items-center justify-center font-bold text-sm shadow">JK</div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-4 pb-24">
-                        {activeTab === 'wallet' && (
-                            <div>
-                                <div className="bg-white p-6 rounded-xl shadow mb-6 text-center border-t-4 border-green-500">
-                                    <p className="text-gray-500 mb-2 font-medium">Spare Change & Funds</p>
-                                    <h2 className="text-5xl font-bold text-gray-800 mb-6">€ {walletBalance.toFixed(2)}</h2>
-                                    
-                                    <div className="mt-6 border-t pt-4">
-                                        <p className="text-sm font-semibold mb-3 text-gray-600">Add Voluntary Funds:</p>
-                                        <div className="flex gap-2 justify-center mb-4">
-                                            <button onClick={() => {setWalletBalance(walletBalance + 2); alert("Added €2!");}} className="flex-1 bg-green-50 text-green-700 font-bold px-3 py-2 rounded-lg border border-green-200 hover:bg-green-100 transition">+ €2</button>
-                                            <button onClick={() => {setWalletBalance(walletBalance + 5); alert("Added €5!");}} className="flex-1 bg-green-50 text-green-700 font-bold px-3 py-2 rounded-lg border border-green-200 hover:bg-green-100 transition">+ €5</button>
-                                            <button onClick={() => {setWalletBalance(walletBalance + 10); alert("Added €10!");}} className="flex-1 bg-green-50 text-green-700 font-bold px-3 py-2 rounded-lg border border-green-200 hover:bg-green-100 transition">+ €10</button>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <input 
-                                                type="number" 
-                                                value={customDonateAmount}
-                                                onChange={(e) => setCustomDonateAmount(e.target.value)}
-                                                placeholder="Custom amount (€)" 
-                                                className="border p-2 rounded-lg w-full bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none"
-                                            />
-                                            <button onClick={handleCustomDonate} className="bg-green-600 text-white font-bold px-5 py-2 rounded-lg hover:bg-green-700 transition">Add</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {!isPremium && (
-                                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 rounded-xl text-white shadow-lg flex justify-between items-center cursor-pointer hover:shadow-xl transition" onClick={() => setView('premium_checkout')}>
-                                        <div>
-                                            <h3 className="font-bold text-lg">Upgrade to Premium</h3>
-                                            <p className="text-sm opacity-90 mt-1">Get 2x badges per donation!</p>
-                                        </div>
-                                        <div className="bg-white text-blue-700 px-4 py-2 rounded-full text-sm font-bold shadow">€4/mo</div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {activeTab === 'causes' && (
-                            <div>
-                                <h2 className="text-xl font-bold mb-2 text-gray-800">Support a Cause</h2>
-                                <p className="text-sm text-gray-600 mb-6">Transfer your wallet balance (<strong>€{walletBalance.toFixed(2)}</strong>) to make a real impact.</p>
-                                <div className="space-y-4">
-                                    {causes.map(cause => (
-                                        <div key={cause.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                                            <h3 className="font-bold text-lg text-gray-800">{cause.name}</h3>
-                                            <p className="text-gray-500 text-sm mb-4 mt-1">{cause.desc}</p>
-                                            <button 
-                                                onClick={() => handleDonateAll(cause.id)}
-                                                className={`w-full py-3 rounded-lg font-bold transition ${walletBalance > 0 ? 'bg-green-600 text-white hover:bg-green-700 shadow-md' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                                                Donate €{walletBalance.toFixed(2)}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'album' && (
-                            <div>
-                                <h2 className="text-xl font-bold mb-2 text-gray-800">Your Badge Album</h2>
-                                <p className="text-sm text-gray-600 mb-4">You have collected {badges.length} badges.</p>
-                                <div className="grid grid-cols-2 gap-4 mb-8">
-                                    {causes.map(cause => {
-                                        const count = badges.filter(b => b === cause.id).length;
-                                        return (
-                                            <div key={cause.id} className={`aspect-square rounded-xl flex flex-col items-center justify-center p-3 text-center shadow-sm transition ${count > 0 ? 'bg-green-50 border-2 border-green-500' : 'bg-white border border-gray-100 opacity-60'}`}>
-                                                <div className="text-4xl mb-2">{count > 0 ? '🏆' : '🔒'}</div>
-                                                <div className="text-sm font-bold text-gray-700 leading-tight mb-2">{cause.name}</div>
-                                                {count > 0 && <div className="text-xs bg-green-500 text-white px-3 py-1 rounded-full font-bold shadow-sm">x{count} collected</div>}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                <h2 className="text-xl font-bold mb-2 text-gray-800">Unlockable Rewards</h2>
-                                <p className="text-sm text-gray-600 mb-4">Complete milestones to earn real-world rewards.</p>
-                                <div className="space-y-3">
-                                    {rewards.map(reward => (
-                                        <div key={reward.id} className={`flex items-center p-4 rounded-xl shadow-sm border ${reward.unlocked ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100 opacity-70'}`}>
-                                            <div className="text-3xl mr-4">{reward.icon}</div>
-                                            <div className="flex-1">
-                                                <h3 className={`font-bold ${reward.unlocked ? 'text-green-800' : 'text-gray-700'}`}>{reward.title}</h3>
-                                                <p className="text-xs text-gray-500">{reward.desc}</p>
-                                            </div>
-                                            <div>
-                                                {reward.unlocked ? (
-                                                    <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">Unlocked!</span>
-                                                ) : (
-                                                    <span className="bg-gray-200 text-gray-500 text-xs font-bold px-2 py-1 rounded-full">Locked</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Tab Bar */}
-                    <div className="absolute bottom-0 w-full bg-white border-t flex justify-around p-2 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center p-3 flex-1 ${activeTab === 'wallet' ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'}`}>
-                            <span className="text-2xl mb-1">💰</span>
-                            <span className="text-xs font-bold">Wallet</span>
-                        </button>
-                        <button onClick={() => setActiveTab('causes')} className={`flex flex-col items-center p-3 flex-1 ${activeTab === 'causes' ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'}`}>
-                            <span className="text-2xl mb-1">🌍</span>
-                            <span className="text-xs font-bold">Causes</span>
-                        </button>
-                        <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center p-3 flex-1 ${activeTab === 'album' ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'}`}>
-                            <span className="text-2xl mb-1">🏅</span>
-                            <span className="text-xs font-bold">Album</span>
-                        </button>
+                        <div>
+                            <h3 className="font-semibold text-gray-800 mb-1">How it works</h3>
+                            <p className="text-gray-500 text-sm leading-relaxed">
+                                Every time you make a purchase, we round up to the nearest euro and place the spare change here. Add extra funds and choose where to make an impact!
+                            </p>
+                        </div>
                     </div>
                 </div>
             );
-        };
+
+            const renderCausesTab = () => (
+                <div className="space-y-4 animate-in fade-in duration-500">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">Choose a Cause</h2>
+                        <p className="text-gray-500 text-sm">Where would you like to make a difference today?</p>
+                    </div>
+
+                    {CAUSES.map(cause => (
+                        <div 
+                            key={cause.id} 
+                            onClick={() => setSelectedCause(cause)}
+                            className={`bg-white rounded-2xl p-4 shadow-sm border ${cause.borderColor} cursor-pointer hover:shadow-md transition-all flex items-center justify-between`}
+                        >
+                            <div className="flex items-center space-x-4">
+                                <div className={`${cause.color} w-12 h-12 flex items-center justify-center rounded-2xl text-xl`}>
+                                    <i className={`fa-solid ${cause.icon}`}></i>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-800">{cause.title}</h3>
+                                    <p className="text-sm text-gray-500">{cause.shortDesc}</p>
+                                </div>
+                            </div>
+                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            const renderAlbumTab = () => {
+                const rewards = getUnlockedRewards();
+                const progressPercentage = Math.min((badges.length / TOTAL_BADGES_FOR_ALBUM) * 100, 100);
+
+                return (
+                    <div className="space-y-6 animate-in fade-in duration-500">
+                        {/* Premium Toggle */}
+                        <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer"
+                             onClick={() => !isPremium && setShowPremiumModal(true)}>
+                            <div className="flex items-center space-x-3">
+                                <div className="bg-purple-100 w-10 h-10 flex items-center justify-center rounded-full text-purple-600">
+                                    <i className="fa-solid fa-wand-magic-sparkles"></i>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-800 text-sm">Premium Impact</h3>
+                                    <p className="text-xs text-gray-500">Earn 2x badges per donation</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center">
+                                 {isPremium && <span className="text-xs font-bold text-purple-600 mr-2 uppercase tracking-wide">Active</span>}
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isPremium) setIsPremium(false);
+                                        else setShowPremiumModal(true);
+                                    }}
+                                    className={`w-12 h-6 rounded-full transition-colors relative ${isPremium ? 'bg-purple-500' : 'bg-gray-300'}`}
+                                >
+                                    <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${isPremium ? 'translate-x-7' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Album Progress */}
+                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-end mb-2">
+                                <h3 className="font-semibold text-gray-800">My Badges</h3>
+                                <span className="text-sm text-emerald-600 font-medium">{badges.length} / {TOTAL_BADGES_FOR_ALBUM}</span>
+                            </div>
+                            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
+                                <div 
+                                    className="bg-emerald-500 h-full rounded-full transition-all duration-1000"
+                                    style={{ width: `${progressPercentage}%` }}
+                                />
+                            </div>
+                            
+                            {/* Badge Grid */}
+                            <div className="grid grid-cols-4 gap-3">
+                                {Array.from({ length: 16 }).map((_, i) => {
+                                    const badge = badges[i];
+                                    const cause = badge ? CAUSES.find(c => c.id === badge.causeId) : null;
+                                    return (
+                                        <div key={i} className={`aspect-square rounded-xl flex items-center justify-center ${badge ? cause.color : 'bg-gray-50 border border-gray-100'}`}>
+                                            {badge ? <i className={`fa-solid ${cause.icon} text-xl`}></i> : <div className="w-2 h-2 rounded-full bg-gray-200" />}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Rewards Section */}
+                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                            <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
+                                <i className="fa-solid fa-gift text-rose-500 mr-2"></i>
+                                Unlocked Rewards
+                            </h3>
+                            {rewards.length === 0 ? (
+                                <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-xl">
+                                    Donate 3 times to the same cause to unlock your first reward!
+                                </p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {rewards.map((reward, idx) => (
+                                        <div key={idx} className="flex items-start p-3 bg-rose-50 rounded-xl border border-rose-100">
+                                            <i className="fa-solid fa-circle-check text-rose-500 mt-1 mr-3"></i>
+                                            <div>
+                                                <h4 className="font-medium text-gray-800 text-sm">{reward.title}</h4>
+                                                <p className="text-xs text-gray-600">{reward.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderBankApp = () => (
+                <div className="flex flex-col h-full bg-gray-50 w-full relative">
+                    {/* Bank Header */}
+                    <div className="bg-[#ff6200] p-6 pt-12 pb-6 text-white flex justify-between items-center relative z-10">
+                        <div>
+                            <h1 className="text-3xl font-extrabold tracking-tight">ING</h1>
+                            <p className="opacity-90 font-medium mt-1">Good afternoon, JK</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-white text-[#ff6200] flex items-center justify-center font-bold text-xl shadow-inner">
+                            JK
+                        </div>
+                    </div>
+
+                    {/* Bank Body */}
+                    <div className="p-4 flex-1 overflow-y-auto pb-24 space-y-4">
+                        <div className="bg-[#000033] text-white rounded-2xl p-5 shadow-lg relative overflow-hidden mt-2">
+                            <h3 className="text-gray-400 text-sm mb-1">Checking Account</h3>
+                            <p className="text-3xl font-bold mb-4">€ 2,450.75</p>
+                            <p className="text-sm text-gray-400 tracking-wider">NL89 INGB 0123 4567 89</p>
+                        </div>
+
+                        {/* EcoWallet Promo Banner */}
+                        <div 
+                            onClick={() => setAppView('ecowallet')}
+                            className="bg-white rounded-2xl p-[2px] cursor-pointer shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-[#ff6200] to-amber-500"
+                        >
+                            <div className="bg-orange-50 rounded-xl p-4 flex items-center h-full">
+                                <div className="bg-[#ff6200] w-12 h-12 flex items-center justify-center rounded-xl text-white mr-4 shadow-md">
+                                    <i className="fa-solid fa-leaf text-xl"></i>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-[#000033]">EcoWallet Rewards</h3>
+                                    <p className="text-sm text-gray-600 font-medium">Turn spare change into impact</p>
+                                </div>
+                                <i className="fa-solid fa-chevron-right text-[#ff6200] text-xl"></i>
+                            </div>
+                        </div>
+
+                        {/* Recent Transactions */}
+                        <div className="pt-2">
+                            <h3 className="font-bold text-[#000033] mb-3 px-1">Recent Transactions</h3>
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="p-4 border-b border-gray-50 flex justify-between items-center">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="bg-blue-100 w-10 h-10 flex items-center justify-center rounded-lg text-blue-600"><i className="fa-solid fa-cart-shopping"></i></div>
+                                        <div>
+                                            <p className="font-semibold text-gray-800 text-sm">Supermarket</p>
+                                            <p className="text-xs text-gray-500">Today</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-semibold text-gray-800 text-sm">-€ 42.10</p>
+                                        <p className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full mt-1 inline-block">+€ 0.90 to EcoWallet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen bg-gray-200 flex items-center justify-center sm:p-4 font-sans">
+                    <div className="w-full h-screen sm:h-auto sm:max-w-md bg-gray-50 sm:min-h-[850px] sm:max-h-[90vh] sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col sm:border-[8px] sm:border-white">
+                        
+                        {appView === 'bank' ? renderBankApp() : (
+                            <>
+                                {/* Header */}
+                                <div className="pt-8 pb-4 px-4 sm:px-6 bg-white z-10 sticky top-0 border-b border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <button 
+                                            onClick={() => setAppView('bank')}
+                                            className="w-10 h-10 -ml-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full flex items-center justify-center"
+                                        >
+                                            <i className="fa-solid fa-arrow-left"></i>
+                                        </button>
+                                        <div className="bg-emerald-500 w-8 h-8 flex items-center justify-center rounded-xl text-white">
+                                            <i className="fa-solid fa-leaf text-sm"></i>
+                                        </div>
+                                        <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
+                                            EcoWallet
+                                        </h1>
+                                    </div>
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-semibold border border-gray-200 text-sm">
+                                        JK
+                                    </div>
+                                </div>
+
+                                {/* Content Area */}
+                                <div className="flex-1 overflow-y-auto p-6 pb-28">
+                                    {activeTab === 'wallet' && renderWalletTab()}
+                                    {activeTab === 'causes' && renderCausesTab()}
+                                    {activeTab === 'album' && renderAlbumTab()}
+                                </div>
+
+                                {/* Bottom Navigation */}
+                                <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center z-10 pb-6 sm:pb-4">
+                                    <button 
+                                        onClick={() => setActiveTab('wallet')}
+                                        className={`flex flex-col items-center space-y-1 ${activeTab === 'wallet' ? 'text-emerald-500' : 'text-gray-400'}`}
+                                    >
+                                        <i className="fa-solid fa-wallet text-xl"></i>
+                                        <span className="text-[10px] font-medium">Wallet</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('causes')}
+                                        className={`flex flex-col items-center space-y-1 ${activeTab === 'causes' ? 'text-emerald-500' : 'text-gray-400'}`}
+                                    >
+                                        <i className="fa-solid fa-seedling text-xl"></i>
+                                        <span className="text-[10px] font-medium">Causes</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('album')}
+                                        className={`flex flex-col items-center space-y-1 relative ${activeTab === 'album' ? 'text-emerald-500' : 'text-gray-400'}`}
+                                    >
+                                        {badges.length > 0 && activeTab !== 'album' && (
+                                            <span className="absolute -top-1 -right-2 w-3 h-3 bg-rose-500 rounded-full border-2 border-white"></span>
+                                        )}
+                                        <i className="fa-solid fa-medal text-xl"></i>
+                                        <span className="text-[10px] font-medium">My Album</span>
+                                    </button>
+                                </div>
+
+                                {/* Cause Detail Modal */}
+                                {selectedCause && (
+                                    <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/50 backdrop-blur-sm">
+                                        <div className="bg-white w-full h-[80%] sm:h-auto sm:max-h-[80%] sm:rounded-3xl rounded-t-3xl flex flex-col">
+                                            <div className="flex justify-end p-4 pb-0">
+                                                <button onClick={() => setSelectedCause(null)} className="w-8 h-8 bg-gray-100 rounded-full text-gray-500 flex items-center justify-center">
+                                                    <i className="fa-solid fa-xmark"></i>
+                                                </button>
+                                            </div>
+                                            <div className="px-6 pb-6 overflow-y-auto flex-1">
+                                                <div className={`w-20 h-20 ${selectedCause.color} rounded-3xl flex items-center justify-center mx-auto mb-4 text-4xl`}>
+                                                    <i className={`fa-solid ${selectedCause.icon}`}></i>
+                                                </div>
+                                                <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">{selectedCause.title}</h2>
+                                                <p className="text-center text-emerald-600 font-medium mb-6 bg-emerald-50 py-1.5 px-4 rounded-full w-max mx-auto">
+                                                    {selectedCause.shortDesc}
+                                                </p>
+                                                <div className="space-y-6">
+                                                    <div>
+                                                        <h3 className="font-semibold text-gray-800 mb-2">About this cause</h3>
+                                                        <p className="text-gray-600 text-sm leading-relaxed">{selectedCause.longDesc}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="p-6 bg-white border-t border-gray-100 sm:rounded-b-3xl">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <span className="text-gray-500 text-sm">Donation Amount</span>
+                                                    <span className="font-bold text-gray-800">€{balance.toFixed(2)}</span>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleDonate(selectedCause.id)}
+                                                    className={`w-full py-4 rounded-xl font-bold text-white shadow-md ${
+                                                        balance > 0 
+                                                        ? 'bg-emerald-500 hover:bg-emerald-600' 
+                                                        : 'bg-gray-300 cursor-not-allowed'
+                                                    }`}
+                                                >
+                                                    {balance > 0 ? 'Confirm Donation' : 'Wallet is Empty'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Premium Checkout Modal */}
+                                {showPremiumModal && (
+                                    <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/60 backdrop-blur-sm">
+                                        <div className="bg-white w-full rounded-3xl p-6 flex flex-col items-center text-center shadow-2xl">
+                                            <div className="bg-purple-100 w-16 h-16 flex items-center justify-center rounded-full text-purple-600 mb-4 text-2xl">
+                                                <i className="fa-solid fa-wand-magic-sparkles"></i>
+                                            </div>
+                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Activate Premium</h2>
+                                            <p className="text-gray-500 mb-6 text-sm">
+                                                Double your impact! Earn 2 badges for every donation you make and complete your album faster.
+                                            </p>
+                                            <div className="bg-gray-50 w-full rounded-2xl p-4 mb-6 border border-gray-100">
+                                                <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold mb-1">Subscription Plan</p>
+                                                <p className="text-3xl font-bold text-purple-600">€4 <span className="text-lg text-gray-500 font-medium">/ month</span></p>
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    setIsPremium(true);
+                                                    setShowPremiumModal(false);
+                                                    showNotification("✨ Premium Activated! Badges are now doubled.");
+                                                }}
+                                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg mb-3"
+                                            >
+                                                Pay €4 to Subscribe
+                                            </button>
+                                            <button 
+                                                onClick={() => setShowPremiumModal(false)}
+                                                className="text-gray-500 font-medium text-sm p-2 hover:text-gray-700"
+                                            >
+                                                Maybe later
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Toast Notification */}
+                                {showToast && (
+                                    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl flex items-center space-x-2">
+                                        <i className="fa-solid fa-sparkles text-emerald-400"></i>
+                                        <span>{showToast}</span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            );
+        }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<EcoWallet />);
     </script>
 </body>
 </html>
