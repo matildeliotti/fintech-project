@@ -3,25 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoWallet Rewards Prototype</title>
+    <title>EcoWallet - Integrated Portfolio</title>
     
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    
-    <!-- Babel to compile JSX in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
         body { margin: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        /* Hide scrollbar for clean app look */
         ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .donut-segment { transition: stroke-width 0.2s ease; cursor: pointer; }
+        .donut-segment:hover { stroke-width: 24; }
+        .pie-segment { transition: transform 0.2s ease, opacity 0.2s ease; transform-origin: 0 0; cursor: pointer; }
+        .pie-segment:hover { transform: scale(1.05); opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -48,9 +45,18 @@
             { id: 4, requiredBadges: 30, title: "Album Completion", desc: "Grand prize for finishing your EcoWallet album!" }
         ];
 
+        const INDEX_FUNDS = [
+            { id: 'eco', title: 'Eco-Communities Index', desc: 'Urban Greenery & Agriculture', weight: 15, color: '#34d399', icon: 'fa-leaf' },
+            { id: 'circular', title: 'Circular & Waste Index', desc: 'Upcycling & Zero-Waste Programs', weight: 18, color: '#38bdf8', icon: 'fa-recycle' },
+            { id: 'climate', title: 'Climate & Energy Index', desc: 'Renewables & Carbon Offsetting', weight: 20, color: '#60a5fa', icon: 'fa-bolt' },
+            { id: 'ocean', title: 'Ocean & Water Index', desc: 'Marine Cleanup & Coastal Protection', weight: 22, color: '#2dd4bf', icon: 'fa-water' },
+            { id: 'forests', title: 'Forests & Wildlife Index', desc: 'Reforestation & Habitats', weight: 25, color: '#10b981', icon: 'fa-tree' }
+        ];
+
         const TOTAL_BADGES_FOR_ALBUM = 30; 
 
-        function EcoWallet() {
+        function App() {
+            const [appView, setAppView] = useState('bank');
             const [activeTab, setActiveTab] = useState('wallet');
             const [balance, setBalance] = useState(18.50);
             const [isPremium, setIsPremium] = useState(false);
@@ -59,7 +65,7 @@
             const [showToast, setShowToast] = useState(null);
             const [customAmount, setCustomAmount] = useState('');
             const [showPremiumModal, setShowPremiumModal] = useState(false);
-            const [appView, setAppView] = useState('bank'); // 'bank' or 'ecowallet'
+            const [showDonateModal, setShowDonateModal] = useState(false);
 
             const handleAddFunds = (amount) => {
                 if (!amount || isNaN(amount) || amount <= 0) return;
@@ -68,37 +74,46 @@
                 setCustomAmount('');
             };
 
+            const triggerDonationSuccess = (amount, causeId = null, isPortfolio = false) => {
+                setBalance(0);
+                const badgesEarned = isPremium ? 2 : 1;
+                
+                // For portfolio, assign a random cause badge for diversity, or standard badges
+                const newBadges = Array(badgesEarned).fill(null).map(() => ({
+                    id: Math.random().toString(36).substring(7),
+                    causeId: isPortfolio ? CAUSES[Math.floor(Math.random() * CAUSES.length)].id : causeId,
+                }));
+                
+                setBadges(prev => {
+                    const updatedBadges = [...prev, ...newBadges];
+                    const prevCount = prev.length;
+                    const newCount = updatedBadges.length;
+                    
+                    REWARDS.forEach(reward => {
+                        if (prevCount < reward.requiredBadges && newCount >= reward.requiredBadges) {
+                            setTimeout(() => showNotification(`🎉 Milestone! You unlocked: ${reward.title}!`), 3000);
+                        }
+                    });
+                    return updatedBadges;
+                });
+                
+                if (isPortfolio) {
+                    showNotification(`Transferred €${amount.toFixed(2)} to Portfolio! Earned ${badgesEarned} badge${badgesEarned > 1 ? 's' : ''}.`);
+                } else {
+                    showNotification(`Donated €${amount.toFixed(2)}! Earned ${badgesEarned} badge${badgesEarned > 1 ? 's' : ''}.`);
+                    setSelectedCause(null);
+                }
+            };
+
             const handleDonate = (causeId) => {
                 if (balance > 0) {
-                    const donatedAmount = balance;
-                    setBalance(0); 
-                    
-                    const badgesEarned = isPremium ? 2 : 1;
-                    const newBadges = Array(badgesEarned).fill({ 
-                        id: Math.random().toString(36).substring(7),
-                        causeId, 
-                    });
-                    
-                    setBadges(prev => {
-                        const updatedBadges = [...prev, ...newBadges];
-                        
-                        // Check if any milestone was reached exactly on this donation
-                        const prevCount = prev.length;
-                        const newCount = updatedBadges.length;
-                        
-                        REWARDS.forEach(reward => {
-                            if (prevCount < reward.requiredBadges && newCount >= reward.requiredBadges) {
-                                setTimeout(() => showNotification(`🎉 Milestone! You unlocked: ${reward.title}!`), 3000);
-                            }
-                        });
-
-                        return updatedBadges;
-                    });
-                    
-                    showNotification(`Donated €${donatedAmount.toFixed(2)}! Earned ${badgesEarned} badge${badgesEarned > 1 ? 's' : ''}.`);
-                    setSelectedCause(null);
-                } else {
-                    showNotification("Your wallet is empty!");
+                    triggerDonationSuccess(balance, causeId, false);
+                }
+            };
+            
+            const handlePortfolioTransfer = () => {
+                if (balance > 0) {
+                    triggerDonationSuccess(balance, null, true);
                 }
             };
 
@@ -115,10 +130,11 @@
                         <div className="text-4xl font-bold mb-4 relative z-10">€{balance.toFixed(2)}</div>
                         
                         <button 
-                            onClick={() => setActiveTab('causes')}
-                            className="w-full bg-white text-emerald-600 font-bold py-3 rounded-xl mb-6 shadow-md hover:bg-emerald-50 transition-colors relative z-10"
+                            onClick={() => setShowDonateModal(true)}
+                            className="w-full bg-white text-emerald-600 font-bold py-3 rounded-xl mb-6 shadow-md hover:bg-emerald-50 transition-colors relative z-10 flex items-center justify-center space-x-2"
                         >
-                            Donate Amount
+                            <i className="fa-solid fa-hand-holding-heart"></i>
+                            <span>Donate Amount</span>
                         </button>
                         
                         <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 relative z-10 border border-white/20">
@@ -136,231 +152,209 @@
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
                                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">€</span>
-                                    <input 
-                                        type="number" 
-                                        placeholder="Custom" 
-                                        value={customAmount}
-                                        onChange={(e) => setCustomAmount(e.target.value)}
-                                        className="w-full bg-white text-gray-900 pl-8 pr-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder-gray-400"
-                                    />
+                                    <input type="number" placeholder="Custom" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} className="w-full bg-white text-gray-900 pl-8 pr-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder-gray-400" />
                                 </div>
-                                <button 
-                                    onClick={() => handleAddFunds(customAmount)}
-                                    className="bg-emerald-700 hover:bg-emerald-800 transition-colors px-4 py-2 rounded-lg font-medium"
-                                >
-                                    Add
-                                </button>
+                                <button onClick={() => handleAddFunds(customAmount)} className="bg-emerald-700 hover:bg-emerald-800 transition-colors px-4 py-2 rounded-lg font-medium">Add</button>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-start space-x-4">
-                        <div className="bg-blue-50 p-3 rounded-full text-blue-500">
-                            <i className="fa-solid fa-circle-info text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-gray-800 mb-1">How it works</h3>
-                            <p className="text-gray-500 text-sm leading-relaxed">
-                                Every time you make a purchase, we round up to the nearest euro and place the spare change here. Add extra funds and choose where to make an impact!
-                            </p>
                         </div>
                     </div>
                 </div>
             );
 
             const renderCausesTab = () => (
-                <div className="space-y-4 animate-in fade-in duration-500">
-                    <div className="mb-6">
+                <div className="space-y-4 animate-in fade-in duration-500 pb-4">
+                    <div className="mb-4">
                         <h2 className="text-2xl font-bold text-gray-800">Choose a Cause</h2>
-                        <p className="text-gray-500 text-sm">Where would you like to make a difference today?</p>
+                        <p className="text-gray-500 text-sm">Select one of our causes to support directly.</p>
                     </div>
-
                     {CAUSES.map(cause => (
-                        <div 
-                            key={cause.id} 
-                            onClick={() => setSelectedCause(cause)}
-                            className={`bg-white rounded-2xl p-4 shadow-sm border ${cause.borderColor} cursor-pointer hover:shadow-md transition-all flex items-center justify-between`}
-                        >
+                        <div key={cause.id} onClick={() => setSelectedCause(cause)} className={`bg-white rounded-2xl p-4 shadow-sm border ${cause.borderColor} cursor-pointer hover:shadow-md transition-all flex items-center justify-between`}>
                             <div className="flex items-center space-x-4">
-                                <div className={`${cause.color} w-12 h-12 flex items-center justify-center rounded-2xl text-xl`}>
-                                    <i className={`fa-solid ${cause.icon}`}></i>
-                                </div>
+                                <div className={`${cause.color} w-12 h-12 flex items-center justify-center rounded-2xl text-xl shrink-0`}><i className={`fa-solid ${cause.icon}`}></i></div>
                                 <div>
                                     <h3 className="font-semibold text-gray-800">{cause.title}</h3>
-                                    <p className="text-sm text-gray-500">{cause.shortDesc}</p>
+                                    <p className="text-sm text-gray-500 line-clamp-1">{cause.shortDesc}</p>
                                 </div>
                             </div>
-                            <i className="fa-solid fa-chevron-right text-gray-300"></i>
+                            <i className="fa-solid fa-chevron-right text-gray-300 ml-2"></i>
                         </div>
                     ))}
                 </div>
             );
 
-            const renderAlbumTab = () => {
-                const progressPercentage = Math.min((badges.length / TOTAL_BADGES_FOR_ALBUM) * 100, 100);
+            const renderPortfolioTab = () => {
+                let cumulativePercent = 0;
+                const getCoordinatesForPercent = (percent) => {
+                    const x = Math.cos(2 * Math.PI * percent);
+                    const y = Math.sin(2 * Math.PI * percent);
+                    return [x, y];
+                };
 
                 return (
-                    <div className="space-y-6 animate-in fade-in duration-500">
-                        {/* Premium Toggle */}
-                        <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer"
-                             onClick={() => !isPremium && setShowPremiumModal(true)}>
-                            <div className="flex items-center space-x-3">
-                                <div className="bg-purple-100 w-10 h-10 flex items-center justify-center rounded-full text-purple-600">
-                                    <i className="fa-solid fa-wand-magic-sparkles"></i>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-gray-800 text-sm">Premium Impact</h3>
-                                    <p className="text-xs text-gray-500">Earn 2x badges per donation</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center">
-                                 {isPremium && <span className="text-xs font-bold text-purple-600 mr-2 uppercase tracking-wide">Active</span>}
-                                <button 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isPremium) setIsPremium(false);
-                                        else setShowPremiumModal(true);
-                                    }}
-                                    className={`w-12 h-6 rounded-full transition-colors relative ${isPremium ? 'bg-purple-500' : 'bg-gray-300'}`}
-                                >
-                                    <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${isPremium ? 'translate-x-7' : 'translate-x-1'}`} />
-                                </button>
-                            </div>
+                    <div className="space-y-6 animate-in fade-in duration-500 pb-4">
+                        <div className="text-center pt-2">
+                            <h2 className="text-teal-600 font-bold tracking-widest text-xs uppercase mb-1">Index Fund</h2>
+                            <h1 className="text-3xl font-extrabold text-gray-800">Environmental Portfolio</h1>
+                            <p className="text-gray-500 text-sm mt-2">Invest your spare change automatically into curated, balanced environmental initiatives.</p>
                         </div>
 
-                        {/* Album Progress */}
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-end mb-2">
-                                <h3 className="font-semibold text-gray-800">My Badges</h3>
-                                <span className="text-sm text-emerald-600 font-medium">{Math.min(badges.length, TOTAL_BADGES_FOR_ALBUM)} / {TOTAL_BADGES_FOR_ALBUM}</span>
-                            </div>
-                            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
-                                <div 
-                                    className="bg-emerald-500 h-full rounded-full transition-all duration-1000"
-                                    style={{ width: `${progressPercentage}%` }}
-                                />
-                            </div>
-                            
-                            {/* Badge Grid */}
-                            <div className="grid grid-cols-5 gap-2 sm:gap-3">
-                                {Array.from({ length: 15 }).map((_, i) => {
-                                    const badge = badges[i];
-                                    const cause = badge ? CAUSES.find(c => c.id === badge.causeId) : null;
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center justify-center relative my-6">
+                            <div className="relative w-64 h-64">
+                                <svg viewBox="-1 -1 2 2" className="transform -rotate-90 w-full h-full overflow-visible">
+                                    {INDEX_FUNDS.map((fund) => {
+                                        const startPercent = cumulativePercent;
+                                        cumulativePercent += fund.weight / 100;
+                                        const endPercent = cumulativePercent;
+                                        
+                                        const [startX, startY] = getCoordinatesForPercent(startPercent);
+                                        const [endX, endY] = getCoordinatesForPercent(endPercent);
+                                        const largeArcFlag = fund.weight / 100 > 0.5 ? 1 : 0;
+                                        
+                                        return (
+                                            <g key={fund.id}>
+                                                <path d={`M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY} Z`} fill={fund.color} stroke="white" strokeWidth="0.02" className="pie-segment" />
+                                            </g>
+                                        );
+                                    })}
+                                </svg>
+                                
+                                {INDEX_FUNDS.map((fund, idx) => {
+                                    let prev = 0;
+                                    for(let i=0; i<idx; i++) prev += INDEX_FUNDS[i].weight/100;
+                                    const angle = ((prev + (fund.weight/100)/2) * 2 * Math.PI) - (Math.PI / 2);
+                                    const r = 32; // Positioning radius further out for a solid pie chart
                                     return (
-                                        <div key={i} className={`aspect-square rounded-xl flex items-center justify-center ${badge ? cause.color : 'bg-gray-50 border border-gray-100'}`}>
-                                            {badge ? <i className={`fa-solid ${cause.icon} sm:text-xl text-lg`}></i> : <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />}
+                                        <div key={`icon-${fund.id}`} className="absolute transform -translate-x-1/2 -translate-y-1/2 text-white flex items-center justify-center drop-shadow-md pointer-events-none" style={{ top: `${50 + Math.sin(angle) * r}%`, left: `${50 + Math.cos(angle) * r}%` }}>
+                                            <i className={`fa-solid ${fund.icon} text-2xl`}></i>
                                         </div>
                                     );
                                 })}
                             </div>
-                            {badges.length > 15 && (
-                                <p className="text-center text-xs text-gray-400 mt-3 italic">+ {badges.length - 15} more on next page...</p>
-                            )}
                         </div>
 
-                        {/* Rewards Section */}
+                        <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-5 shadow-sm border border-teal-100">
+                            <div className="flex items-center justify-between mb-4">
+                                <span className="text-teal-800 font-semibold text-sm">Wallet Balance</span>
+                                <span className="font-bold text-teal-800 text-lg">€{balance.toFixed(2)}</span>
+                            </div>
+                            <button 
+                                onClick={handlePortfolioTransfer}
+                                disabled={balance === 0}
+                                className={`w-full py-4 rounded-xl font-bold text-white shadow-md transition-colors ${
+                                    balance > 0 ? 'bg-teal-500 hover:bg-teal-600' : 'bg-gray-300 cursor-not-allowed'
+                                }`}
+                            >
+                                {balance > 0 ? `Transfer €${balance.toFixed(2)} to Portfolio` : 'Wallet is Empty'}
+                            </button>
+                        </div>
+
                         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                            <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
-                                <i className="fa-solid fa-gift text-rose-500 mr-2"></i>
-                                Rewards & Milestones
-                            </h3>
-                            
-                            <div className="space-y-3">
-                                {REWARDS.map(reward => {
-                                    const isUnlocked = badges.length >= reward.requiredBadges;
-                                    const progress = Math.min((badges.length / reward.requiredBadges) * 100, 100);
-                                    
-                                    return (
-                                        <div key={reward.id} className={`flex flex-col p-3 rounded-xl border transition-all ${isUnlocked ? 'bg-rose-50 border-rose-100' : 'bg-gray-50 border-gray-100 opacity-80'}`}>
-                                            <div className="flex items-start mb-2">
-                                                <div className="mt-0.5 mr-3">
-                                                    {isUnlocked ? (
-                                                        <i className="fa-solid fa-circle-check text-rose-500 text-lg"></i>
-                                                    ) : (
-                                                        <i className="fa-solid fa-lock text-gray-400 text-lg"></i>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between items-center mb-0.5">
-                                                        <h4 className={`font-medium text-sm ${isUnlocked ? 'text-gray-800' : 'text-gray-500'}`}>{reward.title}</h4>
-                                                        <span className={`text-xs font-bold ${isUnlocked ? 'text-rose-500' : 'text-gray-400'}`}>
-                                                            {Math.min(badges.length, reward.requiredBadges)}/{reward.requiredBadges}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-gray-500">{reward.desc}</p>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Individual Reward Progress Bar */}
-                                            <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mt-1">
-                                                <div 
-                                                    className={`h-full rounded-full transition-all duration-1000 ${isUnlocked ? 'bg-rose-500' : 'bg-gray-400'}`}
-                                                    style={{ width: `${progress}%` }}
-                                                />
+                            <h3 className="font-semibold text-gray-800 mb-3">Index Breakdown</h3>
+                            <div className="space-y-4">
+                                {INDEX_FUNDS.map(fund => (
+                                    <div key={fund.id} className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: fund.color }}><i className={`fa-solid ${fund.icon} text-xs`}></i></div>
+                                            <div>
+                                                <h4 className="font-semibold text-gray-800 text-sm">{fund.title}</h4>
+                                                <p className="text-xs text-gray-500">{fund.desc}</p>
                                             </div>
                                         </div>
-                                    );
-                                })}
+                                        <span className="font-bold text-gray-700">{fund.weight}%</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
                 );
             };
 
-            const renderBankApp = () => (
-                <div className="flex flex-col h-full bg-gray-50 w-full relative">
-                    {/* Bank Header */}
-                    <div className="bg-[#ff6200] p-6 pt-12 pb-6 text-white flex justify-between items-center relative z-10">
-                        <div>
-                            <h1 className="text-3xl font-extrabold tracking-tight">ING</h1>
-                            <p className="opacity-90 font-medium mt-1">Good afternoon, JK</p>
+            const renderAlbumTab = () => (
+                <div className="space-y-6 animate-in fade-in duration-500">
+                    <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-100 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer" onClick={() => !isPremium && setShowPremiumModal(true)}>
+                        <div className="flex items-center space-x-3">
+                            <div className="bg-purple-100 w-10 h-10 flex items-center justify-center rounded-full text-purple-600 shrink-0"><i className="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <div>
+                                <h3 className="font-semibold text-gray-800 text-sm">Premium Impact</h3>
+                                <p className="text-xs text-gray-500">Earn 2x badges per donation</p>
+                            </div>
                         </div>
-                        <div className="w-12 h-12 rounded-full bg-white text-[#ff6200] flex items-center justify-center font-bold text-xl shadow-inner">
-                            JK
+                        <div className="flex items-center">
+                            {isPremium && <span className="text-xs font-bold text-purple-600 mr-2 uppercase tracking-wide">Active</span>}
+                            <button onClick={(e) => { e.stopPropagation(); if (isPremium) setIsPremium(false); else setShowPremiumModal(true); }} className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${isPremium ? 'bg-purple-500' : 'bg-gray-300'}`}>
+                                <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${isPremium ? 'translate-x-7' : 'translate-x-1'}`} />
+                            </button>
                         </div>
                     </div>
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-end mb-2">
+                            <h3 className="font-semibold text-gray-800">My Badges</h3>
+                            <span className="text-sm text-emerald-600 font-medium">{Math.min(badges.length, TOTAL_BADGES_FOR_ALBUM)} / {TOTAL_BADGES_FOR_ALBUM}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
+                            <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min((badges.length / TOTAL_BADGES_FOR_ALBUM) * 100, 100)}%` }} />
+                        </div>
+                        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                            {Array.from({ length: 15 }).map((_, i) => {
+                                const badge = badges[i];
+                                const cause = badge ? CAUSES.find(c => c.id === badge.causeId) : null;
+                                return (
+                                    <div key={i} className={`aspect-square rounded-xl flex items-center justify-center ${badge ? (cause?.color || 'bg-teal-100 text-teal-700') : 'bg-gray-50 border border-gray-100'}`}>
+                                        {badge ? <i className={`fa-solid ${cause?.icon || 'fa-star'} sm:text-xl text-lg`}></i> : <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <h3 className="font-semibold text-gray-800 mb-4 flex items-center"><i className="fa-solid fa-gift text-rose-500 mr-2"></i> Rewards & Milestones</h3>
+                        <div className="space-y-3">
+                            {REWARDS.map(reward => {
+                                const isUnlocked = badges.length >= reward.requiredBadges;
+                                return (
+                                    <div key={reward.id} className={`flex flex-col p-3 rounded-xl border transition-all ${isUnlocked ? 'bg-rose-50 border-rose-100' : 'bg-gray-50 border-gray-100 opacity-80'}`}>
+                                        <div className="flex items-start mb-2">
+                                            <div className="mt-0.5 mr-3">{isUnlocked ? <i className="fa-solid fa-circle-check text-rose-500 text-lg"></i> : <i className="fa-solid fa-lock text-gray-400 text-lg"></i>}</div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-center mb-0.5">
+                                                    <h4 className={`font-medium text-sm ${isUnlocked ? 'text-gray-800' : 'text-gray-500'}`}>{reward.title}</h4>
+                                                    <span className={`text-xs font-bold ${isUnlocked ? 'text-rose-500' : 'text-gray-400'}`}>{Math.min(badges.length, reward.requiredBadges)}/{reward.requiredBadges}</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500">{reward.desc}</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mt-1">
+                                            <div className={`h-full rounded-full transition-all duration-1000 ${isUnlocked ? 'bg-rose-500' : 'bg-gray-400'}`} style={{ width: `${Math.min((badges.length / reward.requiredBadges) * 100, 100)}%` }} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
 
-                    {/* Bank Body */}
-                    <div className="p-4 flex-1 overflow-y-auto pb-24 space-y-4">
+            const renderBankApp = () => (
+                <div className="flex flex-col h-full bg-gray-50 w-full relative">
+                    <div className="bg-[#ff6200] p-6 pt-12 pb-6 text-white flex justify-between items-center relative z-10 shrink-0">
+                        <div><h1 className="text-3xl font-extrabold tracking-tight">ING</h1><p className="opacity-90 font-medium mt-1">Good afternoon, JK</p></div>
+                        <div className="w-12 h-12 rounded-full bg-white text-[#ff6200] flex items-center justify-center font-bold text-xl shadow-inner shrink-0">JK</div>
+                    </div>
+                    <div className="p-4 flex-1 overflow-y-auto pb-8 space-y-4">
                         <div className="bg-[#000033] text-white rounded-2xl p-5 shadow-lg relative overflow-hidden mt-2">
                             <h3 className="text-gray-400 text-sm mb-1">Checking Account</h3>
                             <p className="text-3xl font-bold mb-4">€ 2,450.75</p>
                             <p className="text-sm text-gray-400 tracking-wider">NL89 INGB 0123 4567 89</p>
                         </div>
-
-                        {/* EcoWallet Promo Banner */}
-                        <div 
-                            onClick={() => setAppView('ecowallet')}
-                            className="bg-white rounded-2xl p-[2px] cursor-pointer shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-[#ff6200] to-amber-500"
-                        >
-                            <div className="bg-orange-50 rounded-xl p-4 flex items-center h-full">
-                                <div className="bg-[#ff6200] w-12 h-12 flex items-center justify-center rounded-xl text-white mr-4 shadow-md">
-                                    <i className="fa-solid fa-leaf text-xl"></i>
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-bold text-[#000033]">EcoWallet Rewards</h3>
-                                    <p className="text-sm text-gray-600 font-medium">Turn spare change into impact</p>
-                                </div>
-                                <i className="fa-solid fa-chevron-right text-[#ff6200] text-xl"></i>
-                            </div>
-                        </div>
-
-                        {/* Recent Transactions */}
                         <div className="pt-2">
-                            <h3 className="font-bold text-[#000033] mb-3 px-1">Recent Transactions</h3>
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="p-4 border-b border-gray-50 flex justify-between items-center">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="bg-blue-100 w-10 h-10 flex items-center justify-center rounded-lg text-blue-600"><i className="fa-solid fa-cart-shopping"></i></div>
-                                        <div>
-                                            <p className="font-semibold text-gray-800 text-sm">Supermarket</p>
-                                            <p className="text-xs text-gray-500">Today</p>
-                                        </div>
+                            <div onClick={() => setAppView('ecowallet')} className="bg-white rounded-2xl p-[2px] cursor-pointer shadow-sm hover:shadow-md transition-all bg-gradient-to-r from-[#ff6200] to-emerald-500">
+                                <div className="bg-orange-50 rounded-xl p-4 flex items-center h-full">
+                                    <div className="bg-[#ff6200] w-12 h-12 flex items-center justify-center rounded-xl text-white mr-4 shadow-md shrink-0"><i className="fa-solid fa-leaf text-xl"></i></div>
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-[#000033]">EcoWallet Rewards</h3>
+                                        <p className="text-sm text-gray-600 font-medium">Turn spare change into impact</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-semibold text-gray-800 text-sm">-€ 42.10</p>
-                                        <p className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full mt-1 inline-block">+€ 0.90 to EcoWallet</p>
-                                    </div>
+                                    <i className="fa-solid fa-chevron-right text-[#ff6200] text-lg ml-2"></i>
                                 </div>
                             </div>
                         </div>
@@ -368,152 +362,104 @@
                 </div>
             );
 
+            if (appView === 'bank') return (
+                <div className="min-h-screen bg-gray-200 flex items-center justify-center sm:p-4 font-sans">
+                    <div className="w-full h-screen sm:h-auto sm:max-w-md bg-gray-50 sm:min-h-[850px] sm:max-h-[90vh] sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col sm:border-[8px] sm:border-white">{renderBankApp()}</div>
+                </div>
+            );
+                
             return (
                 <div className="min-h-screen bg-gray-200 flex items-center justify-center sm:p-4 font-sans">
                     <div className="w-full h-screen sm:h-auto sm:max-w-md bg-gray-50 sm:min-h-[850px] sm:max-h-[90vh] sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col sm:border-[8px] sm:border-white">
-                        
-                        {appView === 'bank' ? renderBankApp() : (
-                            <>
-                                {/* Header */}
-                                <div className="pt-8 pb-4 px-4 sm:px-6 bg-white z-10 sticky top-0 border-b border-gray-100 flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        <button 
-                                            onClick={() => setAppView('bank')}
-                                            className="w-10 h-10 -ml-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full flex items-center justify-center"
-                                        >
-                                            <i className="fa-solid fa-arrow-left"></i>
-                                        </button>
-                                        <div className="bg-emerald-500 w-8 h-8 flex items-center justify-center rounded-xl text-white">
-                                            <i className="fa-solid fa-leaf text-sm"></i>
-                                        </div>
-                                        <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
-                                            EcoWallet
-                                        </h1>
+                        <div className="pt-8 pb-4 px-4 sm:px-6 bg-white z-10 border-b border-gray-100 flex items-center justify-between shrink-0">
+                            <div className="flex items-center space-x-2">
+                                <button onClick={() => setAppView('bank')} className="w-10 h-10 -ml-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full flex items-center justify-center shrink-0"><i className="fa-solid fa-arrow-left"></i></button>
+                                <div className="bg-emerald-500 w-8 h-8 flex items-center justify-center rounded-xl text-white shrink-0"><i className="fa-solid fa-leaf text-sm"></i></div>
+                                <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">EcoWallet</h1>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 relative">
+                            {activeTab === 'wallet' && renderWalletTab()}
+                            {activeTab === 'causes' && renderCausesTab()}
+                            {activeTab === 'portfolio' && renderPortfolioTab()}
+                            {activeTab === 'album' && renderAlbumTab()}
+                        </div>
+
+                        <div className="bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 pb-8 sm:pb-4">
+                            <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center space-y-1 ${activeTab === 'wallet' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-wallet text-xl"></i><span className="text-[10px] font-medium">Wallet</span>
+                            </button>
+                            <button onClick={() => setActiveTab('causes')} className={`flex flex-col items-center space-y-1 ${activeTab === 'causes' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-seedling text-xl"></i><span className="text-[10px] font-medium">Causes</span>
+                            </button>
+                            <button onClick={() => setActiveTab('portfolio')} className={`flex flex-col items-center space-y-1 ${activeTab === 'portfolio' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-chart-pie text-xl"></i><span className="text-[10px] font-medium">Portfolio</span>
+                            </button>
+                            <button onClick={() => setActiveTab('album')} className={`flex flex-col items-center space-y-1 ${activeTab === 'album' ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-medal text-xl"></i><span className="text-[10px] font-medium">Album</span>
+                            </button>
+                        </div>
+
+                        {/* Modals */}
+                        {showDonateModal && (
+                            <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/60 backdrop-blur-sm">
+                                <div className="bg-white w-full rounded-3xl p-6 flex flex-col items-center text-center shadow-2xl">
+                                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl mb-4"><i className="fa-solid fa-hand-holding-heart"></i></div>
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Make an Impact</h2>
+                                    <p className="text-gray-500 mb-6 text-sm">How would you like to donate your €{balance.toFixed(2)}?</p>
+                                    
+                                    <button onClick={() => { setShowDonateModal(false); setActiveTab('causes'); }} className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold py-4 rounded-xl mb-3 flex items-center justify-center space-x-3 transition-colors">
+                                        <i className="fa-solid fa-seedling text-lg"></i><span>Support a Specific Cause</span>
+                                    </button>
+                                    
+                                    <button onClick={() => { setShowDonateModal(false); setActiveTab('portfolio'); }} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-xl shadow-md mb-4 flex items-center justify-center space-x-3 transition-colors">
+                                        <i className="fa-solid fa-chart-pie text-lg"></i><span>Transfer to Index Fund</span>
+                                    </button>
+                                    
+                                    <button onClick={() => setShowDonateModal(false)} className="text-gray-400 hover:text-gray-600 font-medium text-sm p-2">Cancel</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCause && (
+                            <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/50 backdrop-blur-sm">
+                                <div className="bg-white w-full h-[80%] sm:h-auto sm:max-h-[80%] sm:rounded-3xl rounded-t-3xl flex flex-col">
+                                    <div className="flex justify-end p-4 pb-0"><button onClick={() => setSelectedCause(null)} className="w-8 h-8 bg-gray-100 rounded-full text-gray-500 flex items-center justify-center"><i className="fa-solid fa-xmark"></i></button></div>
+                                    <div className="px-6 pb-6 overflow-y-auto flex-1">
+                                        <div className={`w-20 h-20 ${selectedCause.color} rounded-3xl flex items-center justify-center mx-auto mb-4 text-4xl`}><i className={`fa-solid ${selectedCause.icon}`}></i></div>
+                                        <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">{selectedCause.title}</h2>
+                                        <p className="text-center text-emerald-600 font-medium mb-6 bg-emerald-50 py-1.5 px-4 rounded-full w-max mx-auto">{selectedCause.shortDesc}</p>
+                                        <div className="space-y-6"><div><h3 className="font-semibold text-gray-800 mb-2">About this cause</h3><p className="text-gray-600 text-sm leading-relaxed">{selectedCause.longDesc}</p></div></div>
                                     </div>
-                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-semibold border border-gray-200 text-sm">
-                                        JK
+                                    <div className="p-6 bg-white border-t border-gray-100 sm:rounded-b-3xl">
+                                        <div className="flex items-center justify-between mb-4"><span className="text-gray-500 text-sm">Donation Amount</span><span className="font-bold text-gray-800">€{balance.toFixed(2)}</span></div>
+                                        <button onClick={() => handleDonate(selectedCause.id)} className={`w-full py-4 rounded-xl font-bold text-white shadow-md ${balance > 0 ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-300 cursor-not-allowed'}`}>{balance > 0 ? 'Confirm Donation' : 'Wallet is Empty'}</button>
                                     </div>
                                 </div>
+                            </div>
+                        )}
 
-                                {/* Content Area */}
-                                <div className="flex-1 overflow-y-auto p-6 pb-28">
-                                    {activeTab === 'wallet' && renderWalletTab()}
-                                    {activeTab === 'causes' && renderCausesTab()}
-                                    {activeTab === 'album' && renderAlbumTab()}
+                        {showPremiumModal && (
+                            <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/60 backdrop-blur-sm">
+                                <div className="bg-white w-full rounded-3xl p-6 flex flex-col items-center text-center shadow-2xl">
+                                    <div className="bg-purple-100 w-16 h-16 flex items-center justify-center rounded-full text-purple-600 mb-4 text-2xl"><i className="fa-solid fa-wand-magic-sparkles"></i></div>
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Activate Premium</h2>
+                                    <p className="text-gray-500 mb-6 text-sm">Double your impact! Earn 2 badges for every donation you make and complete your album faster.</p>
+                                    <div className="bg-gray-50 w-full rounded-2xl p-4 mb-6 border border-gray-100">
+                                        <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold mb-1">Subscription Plan</p>
+                                        <p className="text-3xl font-bold text-purple-600">€4 <span className="text-lg text-gray-500 font-medium">/ month</span></p>
+                                    </div>
+                                    <button onClick={() => { setIsPremium(true); setShowPremiumModal(false); showNotification("✨ Premium Activated! Badges are now doubled."); }} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg mb-3">Pay €4 to Subscribe</button>
+                                    <button onClick={() => setShowPremiumModal(false)} className="text-gray-500 font-medium text-sm p-2 hover:text-gray-700">Maybe later</button>
                                 </div>
+                            </div>
+                        )}
 
-                                {/* Bottom Navigation */}
-                                <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center z-10 pb-6 sm:pb-4">
-                                    <button 
-                                        onClick={() => setActiveTab('wallet')}
-                                        className={`flex flex-col items-center space-y-1 ${activeTab === 'wallet' ? 'text-emerald-500' : 'text-gray-400'}`}
-                                    >
-                                        <i className="fa-solid fa-wallet text-xl"></i>
-                                        <span className="text-[10px] font-medium">Wallet</span>
-                                    </button>
-                                    <button 
-                                        onClick={() => setActiveTab('causes')}
-                                        className={`flex flex-col items-center space-y-1 ${activeTab === 'causes' ? 'text-emerald-500' : 'text-gray-400'}`}
-                                    >
-                                        <i className="fa-solid fa-seedling text-xl"></i>
-                                        <span className="text-[10px] font-medium">Causes</span>
-                                    </button>
-                                    <button 
-                                        onClick={() => setActiveTab('album')}
-                                        className={`flex flex-col items-center space-y-1 relative ${activeTab === 'album' ? 'text-emerald-500' : 'text-gray-400'}`}
-                                    >
-                                        <i className="fa-solid fa-medal text-xl"></i>
-                                        <span className="text-[10px] font-medium">My Album</span>
-                                    </button>
-                                </div>
-
-                                {/* Cause Detail Modal */}
-                                {selectedCause && (
-                                    <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/50 backdrop-blur-sm">
-                                        <div className="bg-white w-full h-[80%] sm:h-auto sm:max-h-[80%] sm:rounded-3xl rounded-t-3xl flex flex-col">
-                                            <div className="flex justify-end p-4 pb-0">
-                                                <button onClick={() => setSelectedCause(null)} className="w-8 h-8 bg-gray-100 rounded-full text-gray-500 flex items-center justify-center">
-                                                    <i className="fa-solid fa-xmark"></i>
-                                                </button>
-                                            </div>
-                                            <div className="px-6 pb-6 overflow-y-auto flex-1">
-                                                <div className={`w-20 h-20 ${selectedCause.color} rounded-3xl flex items-center justify-center mx-auto mb-4 text-4xl`}>
-                                                    <i className={`fa-solid ${selectedCause.icon}`}></i>
-                                                </div>
-                                                <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">{selectedCause.title}</h2>
-                                                <p className="text-center text-emerald-600 font-medium mb-6 bg-emerald-50 py-1.5 px-4 rounded-full w-max mx-auto">
-                                                    {selectedCause.shortDesc}
-                                                </p>
-                                                <div className="space-y-6">
-                                                    <div>
-                                                        <h3 className="font-semibold text-gray-800 mb-2">About this cause</h3>
-                                                        <p className="text-gray-600 text-sm leading-relaxed">{selectedCause.longDesc}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="p-6 bg-white border-t border-gray-100 sm:rounded-b-3xl">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <span className="text-gray-500 text-sm">Donation Amount</span>
-                                                    <span className="font-bold text-gray-800">€{balance.toFixed(2)}</span>
-                                                </div>
-                                                <button 
-                                                    onClick={() => handleDonate(selectedCause.id)}
-                                                    className={`w-full py-4 rounded-xl font-bold text-white shadow-md ${
-                                                        balance > 0 
-                                                        ? 'bg-emerald-500 hover:bg-emerald-600' 
-                                                        : 'bg-gray-300 cursor-not-allowed'
-                                                    }`}
-                                                >
-                                                    {balance > 0 ? 'Confirm Donation' : 'Wallet is Empty'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Premium Checkout Modal */}
-                                {showPremiumModal && (
-                                    <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/60 backdrop-blur-sm">
-                                        <div className="bg-white w-full rounded-3xl p-6 flex flex-col items-center text-center shadow-2xl">
-                                            <div className="bg-purple-100 w-16 h-16 flex items-center justify-center rounded-full text-purple-600 mb-4 text-2xl">
-                                                <i className="fa-solid fa-wand-magic-sparkles"></i>
-                                            </div>
-                                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Activate Premium</h2>
-                                            <p className="text-gray-500 mb-6 text-sm">
-                                                Double your impact! Earn 2 badges for every donation you make and complete your album faster.
-                                            </p>
-                                            <div className="bg-gray-50 w-full rounded-2xl p-4 mb-6 border border-gray-100">
-                                                <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold mb-1">Subscription Plan</p>
-                                                <p className="text-3xl font-bold text-purple-600">€4 <span className="text-lg text-gray-500 font-medium">/ month</span></p>
-                                            </div>
-                                            <button 
-                                                onClick={() => {
-                                                    setIsPremium(true);
-                                                    setShowPremiumModal(false);
-                                                    showNotification("✨ Premium Activated! Badges are now doubled.");
-                                                }}
-                                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg mb-3"
-                                            >
-                                                Pay €4 to Subscribe
-                                            </button>
-                                            <button 
-                                                onClick={() => setShowPremiumModal(false)}
-                                                className="text-gray-500 font-medium text-sm p-2 hover:text-gray-700"
-                                            >
-                                                Maybe later
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Toast Notification */}
-                                {showToast && (
-                                    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl flex items-center space-x-2">
-                                        <i className="fa-solid fa-sparkles text-emerald-400"></i>
-                                        <span>{showToast}</span>
-                                    </div>
-                                )}
-                            </>
+                        {showToast && (
+                            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-full text-sm font-medium shadow-xl flex items-center space-x-2 w-max max-w-[90%]">
+                                <i className="fa-solid fa-sparkles text-emerald-400"></i><span>{showToast}</span>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -521,7 +467,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<EcoWallet />);
+        root.render(<App />);
     </script>
 </body>
 </html>
